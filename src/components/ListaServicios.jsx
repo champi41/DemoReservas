@@ -1,27 +1,25 @@
-import { useEffect, useState } from "react";
-import { db } from "../firebaseConfig";
-import { collection, onSnapshot } from "firebase/firestore";
+import React from "react";
 import Servicio from "./Servicio";
-const ListaServicios = ({alSeleccionar, accion}) => {
-  const [servicios, setServicios] = useState([]);
 
-  useEffect(() => {
-
-    const unsubscribe = onSnapshot(collection(db, "servicios"), (snapshot) => {
-      const docs = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setServicios(docs);
-    });
-
-    return () => unsubscribe(); 
-  }, []);
-
+const ListaServicios = ({
+  servicios,
+  onEditar,
+  onEliminar,
+  esVistaCliente,
+}) => {
   return (
     <div className="listaServicios">
-      {servicios.map((servicio) => (
-        <Servicio key={servicio.id} servicio={servicio} alSeleccionar={alSeleccionar} accion={accion}></Servicio>
+      
+
+      {servicios.map((servicio, index) => (
+        <Servicio
+          key={servicio.id}
+          servicio={servicio}
+          onEditar={onEditar}
+          onEliminar={onEliminar}
+          esVistaCliente={esVistaCliente}
+          index={index}
+        />
       ))}
     </div>
   );

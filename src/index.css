@@ -6,15 +6,22 @@
   padding: 0;
   margin: 0;
   gap: 0;
-  box-sizing: border-box; 
+  box-sizing: border-box;
+}
+input[type="date"]:invalid {
+  border: 2px solid #ff4d4d;
+  background-color: #fff5f5;
 }
 :root {
-  --sombra-s: inset 0 1px 2px rgba(255, 255, 255, 0.25),
-    0 1px 2px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
-  --sombra-m: inset 0 1px 2px rgba(255, 255, 255, 0.5),
-    0 2px 4px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.1);
-  --sombra-l: inset 0 1px 2px rgba(255, 255, 255, 0.75),
-    0 4px 6px rgba(0, 0, 0, 0.25), 0 6px 10px rgba(0, 0, 0, 0.1);
+  --sombra-s:
+    inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.25),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  --sombra-m:
+    inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 2px 4px rgba(0, 0, 0, 0.25),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+  --sombra-l:
+    inset 0 1px 2px rgba(255, 255, 255, 0.75), 0 4px 6px rgba(0, 0, 0, 0.25),
+    0 6px 10px rgba(0, 0, 0, 0.1);
 }
 .headerMain {
   display: flex;
@@ -24,7 +31,7 @@
   color: white;
   background-color: black;
 }
-.headerMain h1{
+.headerMain h1 {
   font-size: xx-large;
   font-weight: 500;
 }
@@ -34,7 +41,7 @@ main {
   flex-direction: column;
   gap: 10px;
 }
-main h2{
+main h2 {
   font-size: 25px;
 }
 .listaServicios {
@@ -51,7 +58,7 @@ main h2{
   background-color: whitesmoke;
   box-shadow: var(--sombra-m);
 }
-.servicio .infoServicio{
+.servicio .infoServicio {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -68,93 +75,159 @@ main h2{
   border-radius: 5px;
   box-shadow: var(--sombra-s);
 }
-.overlayModal{
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100svw;
-  height: 100svh;
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(10px);
+.selecPro {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-}
-.modal{
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  background-color: white;
   padding: 10px;
   gap: 10px;
 }
-.modal h2{
-  font-size: 25px;
-  font-weight: 600;
+.selecPro h2 {
+  font-size: x-large;
+  font-weight: 500;
 }
-.form{
+.grid-profesionales {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-.form label{
-  font-size: 20px;
-}
-.form input{
-  background-color: whitesmoke;
-  padding: 5px;
-  border-radius: 5px;
-  font-size: 20px;
-}
-.datosForm{
   gap: 5px;
-  display: flex;
-  flex-direction: column;
 }
-.listaHoras{
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-.listaHoras[data-estado="nada"]{
-  display: flex;
-  flex-direction: column;
-}
-.listaHoras button{
-  font-size: larger;
-  font-weight: bold;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.card-pro {
   padding: 10px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.listaHoras button.seleccionada{
-  background-color: black;
-  color: white;
-  transition: all 0.5s ease;
-}
-.btnsForm{
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, 1fr);
-}
-.btnsForm button{
-  border-radius: 5px;
-  padding: 10px;
+  border-radius: 10px;
   box-shadow: var(--sombra-m);
+  justify-content: space-between;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  animation: fadeInUp 0.4s ease forwards;
+  animation-delay: calc(var(--i) * 0.075s);
 }
-#confirmarCita{
+.card-pro h3 {
+  font-size: large;
+}
+.card-pro button {
+  padding: 5px 20px;
+  background-color: whitesmoke;
+  box-shadow: var(--sombra-s);
+  border-radius: 5px;
+}
+.btn-volver{
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 10px;
+}
+.btn-volver button{
+  padding: 10px;
+  background-color: whitesmoke;
+  box-shadow: var(--sombra-s);
+  border-radius: 10px;
+  font-weight: 500;
+}
+.selector-fecha-hora {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.input-group {
+  display: flex;
+  gap: 10px;
+  font-size: larger;
+  align-items: center;
+}
+.input-group input {
+  background-color: whitesmoke;
+  border-radius: 10px;
+  box-shadow: var(--sombra-s);
+  padding: 0 10px;
+}
+.hora-selected {
+  background-color: #000000;
+  color: #ffffff;
+}
+.selector-fecha-hora .actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  justify-content: space-evenly;
+  gap: 10px;
+}
+.actions button {
+  background-color: whitesmoke;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: var(--sombra-s);
+  font-weight: 500;
+}
+.actions .btn-primary {
   background-color: black;
   color: white;
+}
+.datosCliente {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+.datosCliente h2 {
+  font-size: x-large;
+}
+.resumen-reserva {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background-color: whitesmoke;
+  box-shadow: var(--sombra-m);
+  border-radius: 10px;
+}
+.resumen-reserva p {
+  display: flex;
+  gap: 5px;
+}
+.datosCliente form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.datosCliente form div{
+  display: flex;
+  flex-direction: column;
+}
+.datosCliente form div input{
+  padding: 5px;
+  background-color: whitesmoke;
+  border: 1px solid black;
+  border-radius: 10px;
+}
+.datosCliente form .botones-accion{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 5px;
+  justify-content: space-around;
+}
+.botones-accion button{
+  background-color: whitesmoke;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: var(--sombra-s);
+  font-weight: 500;
+}
+.botones-accion .btn-primary{
+  background-color: black;
+  color: white;
+}
+.vistaCliente main,
+.grid-profesionales,
+.selector-fecha-hora,
+.datosCliente {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -4,8 +4,8 @@ import {
   collection,
   onSnapshot,
   query,
-  orderBy,
   doc,
+  getDoc,
   updateDoc,
   deleteDoc,
   where,
@@ -16,113 +16,127 @@ import Citas from "../components/Citas";
 import Barra from "../components/Barra";
 import GestionServicios from "../components/GestionServicios";
 import "./panelbarbero.css";
+
 const VISTAS = {
   CITAS: "citas",
   HORARIO: "horario",
   SERVICIOS: "servicios",
 };
+
 const PanelBarbero = () => {
   const [activeVista, setActiveVista] = useState(VISTAS.CITAS);
   const hoy = new Date().toISOString().split("T")[0];
-  const [citas, setCitas] = useState([]);
-  const [menuAbierto, setMenuAbierto] = useState(null);
-  const [fechaBloqueo, setFechaBloqueo] = useState(hoy);
+
+  // ESTADO EXCLUSIVO PARA LA AGENDA (HORARIOS)
+  const [citasAgenda, setCitasAgenda] = useState([]);
+  const [fechaBloqueo, setFechaBloqueo] = useState(hoy); // Fecha del calendario visual
   const [bloqueos, setBloqueos] = useState([]);
+  const [menuAbierto, setMenuAbierto] = useState(null);
 
-  const generarHorarios = (inicio, fin) => {
-    const horarios = [];
-    for (let hora = inicio; hora < fin; hora++) {
-      horarios.push(`${hora}:00`, `${hora}:30`);
-    }
-    return horarios;
-  };
-  const HORARIOS_BASE = generarHorarios(11, 20);
+  const [perfilUsuario, setPerfilUsuario] = useState(null);
+  const [cargandoPerfil, setCargandoPerfil] = useState(true);
+  const [horariosBase, setHorariosBase] = useState([]);
 
-  // 1. Obtener UID del barbero logueado
-  const barberoId = auth.currentUser?.uid;
-
-  // EFECTO CITAS: Filtrar por barberoId
+  const profesionalId = auth.currentUser?.uid;
+  const esAdmin = perfilUsuario?.rol === "admin";
+  
+  // 1. CARGAR PERFIL
   useEffect(() => {
-    if (!barberoId) return;
+    if (!profesionalId) return;
+    const obtenerPerfilYConfig = async () => {
+      try {
+        const docRef = doc(db, "profesionales", profesionalId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const datos = docSnap.data();
+          setPerfilUsuario(datos);
+          let apertura = datos.configuracion?.apertura || 11;
+          let cierre = datos.configuracion?.cierre || 20;
+          const horas = [];
+          for (let i = apertura; i < cierre; i++) {
+            horas.push(`${i}:00`, `${i}:30`);
+          }
+          setHorariosBase(horas);
+        }
+      } catch (error) {
+        console.error("Error perfil:", error);
+      } finally {
+        setCargandoPerfil(false);
+      }
+    };
+    obtenerPerfilYConfig();
+  }, [profesionalId]);
+
+  // 2. LISTENER EXCLUSIVO PARA LA AGENDA (Optimizado)
+  // Solo escucha cambios en la fecha que el barbero está mirando en el calendario
+  useEffect(() => {
+    if (!profesionalId) return;
 
     const q = query(
       collection(db, "citas"),
-      where("barberoId", "==", barberoId), // FILTRO VITAL
-      orderBy("fechaCita", "asc"),
+      where("barberoId", "==", profesionalId),
+      where("fechaCita", "==", fechaBloqueo),
     );
 
-    return onSnapshot(q, (snapshot) => {
-      setCitas(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setCitasAgenda(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+      );
     });
-  }, [barberoId]);
+    return () => unsub();
+  }, [profesionalId, fechaBloqueo]);
 
-  // EFECTO BLOQUEOS: Filtrar por barberoId y fecha
+  // 3. LISTENER BLOQUEOS (Igual)
   useEffect(() => {
-    if (!barberoId) return;
-
+    if (!profesionalId) return;
     const q = query(
       collection(db, "bloqueos"),
       where("fecha", "==", fechaBloqueo),
-      where("barberoId", "==", barberoId), // FILTRO VITAL
+      where("barberoId", "==", profesionalId),
     );
-
-    return onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(q, (snapshot) => {
       setBloqueos(snapshot.docs.map((doc) => doc.data().hora));
     });
-  }, [fechaBloqueo, barberoId]);
+    return () => unsub();
+  }, [fechaBloqueo, profesionalId]);
 
-  // TOGGLE BLOQUEO: Guardar con el ID del barbero
+  // --- FUNCIONES COMPARTIDAS ---
   const toggleBloqueo = async (hora) => {
-    // El ID del documento de bloqueo ahora incluye el barberoId para que sea único por persona
-    const idBloqueo = `${barberoId}_${fechaBloqueo}_${hora.replace(":", "")}`;
+    const idBloqueo = `${profesionalId}_${fechaBloqueo}_${hora.replace(":", "")}`;
     const docRef = doc(db, "bloqueos", idBloqueo);
-
     try {
       if (bloqueos.includes(hora)) {
         await deleteDoc(docRef);
       } else {
-        // Al crear el bloqueo, guardamos el barberoId
         await setDoc(docRef, {
           fecha: fechaBloqueo,
           hora: hora,
-          barberoId: barberoId,
+          barberoId: profesionalId,
         });
       }
     } catch (error) {
-      console.error("Error en toggleBloqueo:", error);
+      console.error(error);
     }
   };
 
   const borrarCita = async (id) => {
-    if (window.confirm("¿Eliminar cita?"))
+    if (window.confirm("¿Eliminar cita?")) {
       await deleteDoc(doc(db, "citas", id));
+    }
   };
 
   const gestionarCita = async (cita, nuevoEstado) => {
-    // 1. Definimos los mensajes
     const mensajes = {
-      confirmada: `Hola ${cita.clienteNombre}, te confirmo tu cita para el día ${cita.fechaCita} a las ${cita.horaCita}. ¡Te esperamos!`,
-      cancelada: `Hola ${cita.clienteNombre}, lamentamos informarte que hemos tenido que cancelar tu cita para el ${cita.fechaCita}. Por favor, reserva otro horario en nuestra web.`,
-      contacto: `Hola ${cita.clienteNombre}, te contacto desde la Barbería para realizarte una consulta sobre tu cita del día ${cita.fechaCita}.`,
+      confirmada: `Hola ${cita.clienteNombre}, confirmo tu cita...`,
+      cancelada: `Hola ${cita.clienteNombre}, cancelamos tu cita...`,
+      contacto: `Hola ${cita.clienteNombre}, te contacto por tu cita...`,
     };
-
-    // 2. Preparamos el texto
-    const texto = encodeURIComponent(
-      mensajes[nuevoEstado] || mensajes.contacto,
-    );
-
-    // 3. Abrimos WhatsApp usando el teléfono que ya viene limpio de la DB
-    window.location.href = `https://wa.me/${cita.clienteTelefono}?text=${texto}`;
-
-    // 4. Actualizamos Firebase (solo si cambia el estado)
-    if (nuevoEstado !== "contacto") {
-      try {
-        await updateDoc(doc(db, "citas", cita.id), { estado: nuevoEstado });
-      } catch (error) {
-        console.error("Error al actualizar estado:", error);
-      }
+    if (["contacto", "confirmada", "cancelada"].includes(nuevoEstado)) {
+      window.location.href = `https://wa.me/${cita.clienteTelefono}?text=${encodeURIComponent(mensajes[nuevoEstado])}`;
     }
-
+    if (nuevoEstado !== "contacto") {
+      await updateDoc(doc(db, "citas", cita.id), { estado: nuevoEstado });
+    }
     setMenuAbierto(null);
   };
 
@@ -131,7 +145,6 @@ const PanelBarbero = () => {
       case VISTAS.CITAS:
         return (
           <Citas
-            citas={citas}
             menuAbierto={menuAbierto}
             setMenuAbierto={setMenuAbierto}
             borrarCita={borrarCita}
@@ -141,36 +154,44 @@ const PanelBarbero = () => {
       case VISTAS.HORARIO:
         return (
           <Horarios
+            usuarioLogueado={perfilUsuario}
             fechaBloqueo={fechaBloqueo}
             setFechaBloqueo={setFechaBloqueo}
-            horariosBase={HORARIOS_BASE}
+            horariosBase={horariosBase}
             bloqueos={bloqueos}
             toggleBloqueo={toggleBloqueo}
-            citas={citas}
+            citas={citasAgenda} // Solo recibe las citas de la fecha seleccionada
           />
         );
       case VISTAS.SERVICIOS:
-        return <GestionServicios />;
+        return esAdmin ? (
+          <GestionServicios />
+        ) : (
+          <Citas
+            menuAbierto={menuAbierto}
+            setMenuAbierto={setMenuAbierto}
+            borrarCita={borrarCita}
+            gestionarCita={gestionarCita}
+          />
+        );
       default:
-        <Citas
-          citas={citas}
-          menuAbierto={menuAbierto}
-          setMenuAbierto={setMenuAbierto}
-          borrarCita={borrarCita}
-          gestionarCita={gestionarCita}
-        />;
+        return null;
     }
   };
 
+  if (cargandoPerfil)
+    return <div className="loading">Verificando acceso...</div>;
+
   return (
-    <>
+    <div className="panel-container">
       <Barra
         onVistaChange={setActiveVista}
         activeVista={activeVista}
         vistas={VISTAS}
-      ></Barra>
-      <div className="panel">{renderActiveView()}</div>
-    </>
+        rol={perfilUsuario?.rol}
+      />
+      {renderActiveView()}
+    </div>
   );
 };
 
